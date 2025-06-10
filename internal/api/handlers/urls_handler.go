@@ -30,20 +30,20 @@ func (h *URLHandler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	// get original url from request
 	var req URLRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid request body")
 		h.App.Logger.Error("Invalid request body", "error", err)
 		return
 	}
 
 	if !utils.ValidateURL(req.OriginalURL) {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid URL")
 		h.App.Logger.Error("Invalid URL", "url", req.OriginalURL)
 		return
 	}
 
 	insertedID, err := h.App.Querier.CreateURL(r.Context(), req.OriginalURL)
 	if err != nil {
-		http.Error(w, "Failed to create URL", http.StatusInternalServerError)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to create URL")
 		h.App.Logger.Error("Failed to create URL", "error", err)
 		return
 	}
@@ -55,7 +55,7 @@ func (h *URLHandler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 		ID:        insertedID,
 	})
 	if err != nil {
-		http.Error(w, "Failed to update short code", http.StatusInternalServerError)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to update short code")
 		h.App.Logger.Error("Failed to update short code", "error", err)
 		return
 	}
