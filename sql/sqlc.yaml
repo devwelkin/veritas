@@ -1,12 +1,12 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    queries: "sql/queries"
-    schema: "sql/migrations"
+    queries: "queries"
+    schema: "migrations"
     gen:
       go:
         package: "database"
-        out: "internal/database/sqlc"
+        out: "../internal/database/sqlc"
         sql_package: "pgx/v5"
         emit_interface: true
         emit_json_tags: true
@@ -17,3 +17,5 @@ sql:
             go_type: "time.Time"
           - db_type: "uuid"
             go_type: "github.com/google/uuid.UUID"
+          - column: "urls.short_code"
+            go_type: "string"

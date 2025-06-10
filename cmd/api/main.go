@@ -9,6 +9,7 @@ import (
 	"github.com/nouvadev/veritas/internal/api"
 	"github.com/nouvadev/veritas/internal/config"
 	"github.com/nouvadev/veritas/internal/database"
+	sqlc "github.com/nouvadev/veritas/internal/database/sqlc"
 )
 
 func main() {
@@ -36,9 +37,12 @@ func main() {
 
 	logger.Info("database connection pool established")
 
+	queries := sqlc.New(dbpool)
+
 	app := &config.AppConfig{
-		Logger: logger,
-		DB:     dbpool,
+		Logger:  logger,
+		DB:      dbpool,
+		Querier: queries,
 	}
 
 	PORT := os.Getenv("PORT")

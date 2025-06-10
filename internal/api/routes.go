@@ -11,11 +11,11 @@ import (
 func Routes(app *config.AppConfig) http.Handler {
 	mux := http.NewServeMux()
 
-	h := &handlers.API{
-		App: app,
-	}
+	h := handlers.NewHealthcheckHandler(app)
+	u := handlers.NewURLHandler(app)
 
 	mux.HandleFunc("GET /healthcheck", h.HealthcheckHandler)
+	mux.HandleFunc("POST /create", u.CreateShortURL)
 
 	return mux
 }

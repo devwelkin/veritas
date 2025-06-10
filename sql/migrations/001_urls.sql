@@ -2,13 +2,13 @@
 -- +goose StatementBegin
 CREATE TABLE urls (
     id BIGSERIAL PRIMARY KEY,
-    short_code VARCHAR(255) UNIQUE NOT NULL,
+    short_code VARCHAR(255) UNIQUE,
     original_url TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Redirect servisinin hızlı çalışması için short_code üzerinde bir index oluşturalım.
--- UNIQUE kısıtlaması zaten bir B-tree index oluşturur, ancak bunu belirtmek yine de iyi bir pratiktir.
+-- Let's create an index on short_code for faster redirect service performance.
+-- The UNIQUE constraint already creates a B-tree index, but it's still good practice to specify it.
 CREATE INDEX IF NOT EXISTS idx_urls_short_code ON urls(short_code);
 -- +goose StatementEnd
 
