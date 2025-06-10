@@ -7,11 +7,15 @@ import (
 	"github.com/nouvadev/veritas/internal/config"
 )
 
-type API struct {
+type HealthcheckHandler struct {
 	App *config.AppConfig
 }
 
-func (cfg *API) HealthcheckHandler(w http.ResponseWriter, r *http.Request) {
+func NewHealthcheckHandler(app *config.AppConfig) *HealthcheckHandler {
+	return &HealthcheckHandler{App: app}
+}
+
+func (h *HealthcheckHandler) HealthcheckHandler(w http.ResponseWriter, r *http.Request) {
 	health := map[string]string{
 		"status": "ok",
 	}
