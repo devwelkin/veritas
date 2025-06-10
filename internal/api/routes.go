@@ -1,11 +1,21 @@
 package api
 
-import "net/http"
+import (
+	"net/http"
 
-func (app *Application) Routes() http.Handler {
+	"github.com/nouvadev/veritas/internal/api/handlers"
+	"github.com/nouvadev/veritas/internal/config"
+)
+
+// Routes sets up the routes for the application.
+func Routes(app *config.AppConfig) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /healthcheck", app.HealthcheckHandler)
+	h := &handlers.API{
+		App: app,
+	}
+
+	mux.HandleFunc("GET /healthcheck", h.HealthcheckHandler)
 
 	return mux
 }

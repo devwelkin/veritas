@@ -1,11 +1,17 @@
-package api
+package handlers
 
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/nouvadev/veritas/internal/config"
 )
 
-func (app *Application) HealthcheckHandler(w http.ResponseWriter, r *http.Request) {
+type API struct {
+	App *config.AppConfig
+}
+
+func (cfg *API) HealthcheckHandler(w http.ResponseWriter, r *http.Request) {
 	health := map[string]string{
 		"status": "ok",
 	}
