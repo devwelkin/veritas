@@ -1,0 +1,10 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "migrations" # Relative to sql/
+    queries: "query"    # Relative to sql/
+    gen:
+      go:
+        package: "db"
+        out: "../internal/database/sqlc" # Relative to sql/, goes up to project root
+        sql_package: "pgx/v5"
