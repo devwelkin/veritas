@@ -22,13 +22,13 @@ func main() {
 		logger.Warn("Error loading .env file, continuing without it...")
 	}
 
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
 		logger.Error("DATABASE_URL environment variable is not set")
 		os.Exit(1)
 	}
 
-	dbpool, err := database.ConnectDB(dbURL)
+	dbpool, err := database.ConnectDB(databaseURL)
 	if err != nil {
 		logger.Error("failed to connect to database", "err", err)
 		os.Exit(1)

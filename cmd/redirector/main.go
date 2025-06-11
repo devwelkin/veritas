@@ -29,20 +29,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		logger.Error("REDIS_URL environment variable is not set")
-		os.Exit(1)
-	}
-
 	dbpool, err := database.ConnectDB(dbURL)
 	if err != nil {
 		logger.Error("failed to connect to database", "err", err)
 		os.Exit(1)
 	}
-	defer dbpool.Close()
-
 	logger.Info("database connection pool established")
+
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		logger.Error("REDIS_URL environment variable is not set")
+		os.Exit(1)
+	}
 
 	redisClient, err := cache.ConnectRedis(redisURL)
 	if err != nil {
