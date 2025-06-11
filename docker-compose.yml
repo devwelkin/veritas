@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # -------------------------------------------
+  # Creator Service (URL Oluşturma Servisi)
+  # -------------------------------------------
+  creator-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_NAME: creator # Dockerfile'a hangi uygulamayı build edeceğini söylüyoruz.
+    command: /usr/local/bin/creator # Container başladığında bu binary'i çalıştır.
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - CREATOR_PORT=${CREATOR_PORT:-8081} # .env dosyasından al, yoksa 8081 kullan.
+    labels:
+      # --- Traefik Ayarları (API Gateway için) ---
+      - "traefik.enable=true"
+      - "traefik.http.routers.creator.rule=PathPrefix(`/api`)" # /api ile başlayan istekleri buraya yönlendir.
+      - "traefik.http.services.creator.loadbalancer.server.port=8081"
+
+  # -------------------------------------------
+  # Redirector Service (Yönlendirme Servisi)
+  # -------------------------------------------
+  redirector-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_NAME: redirector
+    command: /usr/local/bin/redirector
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - REDIRECTOR_PORT=${REDIRECTOR_PORT:-8082}
+    labels:
+      # --- Traefik Ayarları (API Gateway için) ---
+      - "traefik.enable=true"
+      - "traefik.http.routers.redirector.rule=HostRegexp(`{host:.+}`)" # Gelen tüm diğer istekleri buraya yönlendir.
+      - "traefik.http.routers.redirector.priority=1" # Diğer kuralların önüne geçmemesi için düşük öncelik.
+      - "traefik.http.services.redirector.loadbalancer.server.port=8082"
+
+  # -------------------------------------------
+  # Traefik (API Gateway / Resepsiyonist)
+  # -------------------------------------------
+  traefik:
+    image: "traefik:v3.0"
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false" # Sadece label'ı olanları expose et.
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "8080:80"      # Dış dünyadan gelen istekler için (HOST:CONTAINER)
+      - "8081:8080"    # Traefik Dashboard'ı için (opsiyonel)
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"

@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/nouvadev/veritas/internal/config"
 	database "github.com/nouvadev/veritas/internal/database/sqlc"
 	"github.com/nouvadev/veritas/internal/utils"
+	"github.com/redis/go-redis/v9"
 )
 
 // URLHandler handles all URL-related HTTP requests
@@ -61,4 +63,39 @@ func (h *URLHandler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithJSON(w, http.StatusCreated, URLResponse{ShortURL: shortCode})
+}
+
+func (h *URLHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
+	shortCode := r.URL.Path[1:]
+
+	originalURL, err := h.App.Cache.Get(r.Context(), shortCode).Result()
+	if err == nil {
+		h.App.Logger.Info("URL found in cache", "short_code", shortCode, "original_url", originalURL)
+		http.Redirect(w, r, originalURL, http.StatusMovedPermanently)
+		return
+	}
+
+	if !errors.Is(err, redis.Nil) {
+		h.App.Logger.Error("redis error", "err", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	h.App.Logger.Info("URL not found in cache", "short_code", shortCode)
+
+	originalURL, err = h.App.Querier.GetURLByShortCode(r.Context(), shortCode)
+	if err != nil {
+		utils.RespondWithError(w, http.StatusNotFound, "URL not found")
+		h.App.Logger.Error("URL not found", "short_code", shortCode)
+		return
+	}
+
+	err = h.App.Cache.Set(r.Context(), shortCode, originalURL, 0).Err()
+	if err != nil {
+		h.App.Logger.Error("failed to set URL in cache", "err", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, originalURL, http.StatusMovedPermanently)
 }
