@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/nouvadev/veritas/internal/config"
-	database "github.com/nouvadev/veritas/internal/database/sqlc"
-	"github.com/nouvadev/veritas/internal/utils"
+	"github.com/nouvadev/veritas/pkg/config"
+	database "github.com/nouvadev/veritas/pkg/database/sqlc"
+	"github.com/nouvadev/veritas/pkg/utils"
 	"github.com/redis/go-redis/v9"
 )
 

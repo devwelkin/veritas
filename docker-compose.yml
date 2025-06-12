@@ -1,4 +1,3 @@
-
 services:
   # -------------------------------------------
   # Creator Service (URL Oluşturma Servisi)
@@ -6,7 +5,7 @@ services:
   creator-service:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: services/creator-service/Dockerfile
       args:
         APP_NAME: creator # Dockerfile'a hangi uygulamayı build edeceğini söylüyoruz.
     command: /usr/local/bin/creator # Container başladığında bu binary'i çalıştır.
@@ -25,7 +24,7 @@ services:
   redirector-service:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: services/redirector-service/Dockerfile
       args:
         APP_NAME: redirector
     command: /usr/local/bin/redirector
@@ -39,6 +38,26 @@ services:
       - "traefik.http.routers.redirector.rule=HostRegexp(`{host:.+}`)" # Gelen tüm diğer istekleri buraya yönlendir.
       - "traefik.http.routers.redirector.priority=1" # Diğer kuralların önüne geçmemesi için düşük öncelik.
       - "traefik.http.services.redirector.loadbalancer.server.port=8082"
+
+  # -------------------------------------------
+  # Analytics Service (Analiz Servisi)
+  # -------------------------------------------
+  analytics-service:
+    build:
+      context: .
+      dockerfile: services/analytics-service/Dockerfile
+      args:
+        APP_NAME: analytics
+    command: /usr/local/bin/analytics
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - ANALYTICS_PORT=${ANALYTICS_PORT:-8083}
+    labels:
+      # --- Traefik Ayarları (API Gateway için) ---
+      - "traefik.enable=true"
+      # Bu servisin dışarıya açılması gerekiyorsa buraya kural eklenebilir.
+      # Şimdilik sadece internal olarak çalışacak.
+      - "traefik.http.services.analytics.loadbalancer.server.port=8083"
 
   # -------------------------------------------
   # Traefik (API Gateway / Resepsiyonist)

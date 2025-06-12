@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/nouvadev/veritas/internal/config"
+	"github.com/nouvadev/veritas/pkg/config"
 )
 
 type HealthcheckHandler struct {

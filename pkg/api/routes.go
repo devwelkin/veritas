@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"github.com/nouvadev/veritas/internal/api/handlers"
-	"github.com/nouvadev/veritas/internal/config"
+	"github.com/nouvadev/veritas/pkg/api/handlers"
+	"github.com/nouvadev/veritas/pkg/config"
 )
 
 func CreateURLRoutes(app *config.AppConfig) http.Handler {

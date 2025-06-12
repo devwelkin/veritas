@@ -4,7 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	sqlc "github.com/nouvadev/veritas/internal/database/sqlc"
+	sqlc "github.com/nouvadev/veritas/pkg/database/sqlc"
 	"github.com/redis/go-redis/v9"
 )
 

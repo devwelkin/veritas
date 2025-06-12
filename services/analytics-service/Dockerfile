@@ -10,7 +10,8 @@ WORKDIR /app
 
 # Önce sadece modül dosyalarını kopyalayıp bağımlılıkları indiriyoruz.
 # Bu katman, sadece bağımlılıklar değiştiğinde yeniden çalışır, build'leri hızlandırır.
-COPY go.mod go.sum ./
+COPY services/${APP_NAME}/go.mod services/${APP_NAME}/go.sum ./
+COPY pkg/go.mod pkg/go.sum ./pkg/
 RUN go mod download
 
 # Tüm kaynak kodunu kopyalıyoruz.
