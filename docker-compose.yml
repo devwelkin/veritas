@@ -17,6 +17,13 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.creator.rule=PathPrefix(`/api`)" # Route requests starting with /api here
       - "traefik.http.services.creator.loadbalancer.server.port=8081"
+      # --- CORS Middleware Definition for Traefik ---
+      - "traefik.http.middlewares.cors-header.headers.accessControlAllowOrigins=http://localhost:5173,http://localhost:3000"
+      - "traefik.http.middlewares.cors-header.headers.accessControlAllowMethods=GET,POST,PUT,DELETE,OPTIONS"
+      - "traefik.http.middlewares.cors-header.headers.accessControlAllowHeaders=Origin,Content-Type,Accept,Authorization"
+      - "traefik.http.middlewares.cors-header.headers.accessControlAllowCredentials=true"
+      # --- Apply CORS Middleware to the Router ---
+      - "traefik.http.routers.creator.middlewares=cors-header"
 
   # -------------------------------------------
   # Redirector Service (Redirection Service)
