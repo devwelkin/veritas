@@ -1,25 +1,25 @@
 services:
   # -------------------------------------------
-  # Creator Service (URL Oluşturma Servisi)
+  # Creator Service (URL Creation Service)
   # -------------------------------------------
   creator-service:
     build:
       context: .
       dockerfile: services/creator-service/Dockerfile
       args:
-        APP_NAME: creator # Dockerfile'a hangi uygulamayı build edeceğini söylüyoruz.
-    command: /usr/local/bin/creator # Container başladığında bu binary'i çalıştır.
+        APP_NAME: creator # Tells Dockerfile which application to build
+    command: /usr/local/bin/creator # Run this binary when container starts
     environment:
       - DATABASE_URL=${DATABASE_URL}
-      - CREATOR_PORT=${CREATOR_PORT:-8081} # .env dosyasından al, yoksa 8081 kullan.
+      - CREATOR_PORT=${CREATOR_PORT:-8081} # Get from .env file, use 8081 if not set
     labels:
-      # --- Traefik Ayarları (API Gateway için) ---
+      # --- Traefik Settings (for API Gateway) ---
       - "traefik.enable=true"
-      - "traefik.http.routers.creator.rule=PathPrefix(`/api`)" # /api ile başlayan istekleri buraya yönlendir.
+      - "traefik.http.routers.creator.rule=PathPrefix(`/api`)" # Route requests starting with /api here
       - "traefik.http.services.creator.loadbalancer.server.port=8081"
 
   # -------------------------------------------
-  # Redirector Service (Yönlendirme Servisi)
+  # Redirector Service (Redirection Service)
   # -------------------------------------------
   redirector-service:
     build:
@@ -33,44 +33,44 @@ services:
       - REDIS_URL=${REDIS_URL}
       - REDIRECTOR_PORT=${REDIRECTOR_PORT:-8082}
     labels:
-      # --- Traefik Ayarları (API Gateway için) ---
+      # --- Traefik Settings (for API Gateway) ---
       - "traefik.enable=true"
-      - "traefik.http.routers.redirector.rule=HostRegexp(`{host:.+}`)" # Gelen tüm diğer istekleri buraya yönlendir.
-      - "traefik.http.routers.redirector.priority=1" # Diğer kuralların önüne geçmemesi için düşük öncelik.
+      - "traefik.http.routers.redirector.rule=HostRegexp(`{host:.+}`)" # Route all other incoming requests here
+      - "traefik.http.routers.redirector.priority=1" # Low priority to not override other rules
       - "traefik.http.services.redirector.loadbalancer.server.port=8082"
 
   # -------------------------------------------
-  # Analytics Service (Analiz Servisi)
+  # Analytics Service (Analytics Service)
   # -------------------------------------------
-  analytics-service:
-    build:
-      context: .
-      dockerfile: services/analytics-service/Dockerfile
-      args:
-        APP_NAME: analytics
-    command: /usr/local/bin/analytics
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - ANALYTICS_PORT=${ANALYTICS_PORT:-8083}
-    labels:
-      # --- Traefik Ayarları (API Gateway için) ---
-      - "traefik.enable=true"
-      # Bu servisin dışarıya açılması gerekiyorsa buraya kural eklenebilir.
-      # Şimdilik sadece internal olarak çalışacak.
-      - "traefik.http.services.analytics.loadbalancer.server.port=8083"
+  # analytics-service:
+  #   build:
+  #     context: .
+  #     dockerfile: services/analytics-service/Dockerfile
+  #     args:
+  #       APP_NAME: analytics
+  #   command: /usr/local/bin/analytics
+  #   environment:
+  #     - DATABASE_URL=${DATABASE_URL}
+  #     - ANALYTICS_PORT=${ANALYTICS_PORT:-8083}
+  #   labels:
+  #     # --- Traefik Settings (for API Gateway) ---
+  #     - "traefik.enable=true"
+  #     # Add rules here if this service needs to be exposed externally
+  #     # For now, it will only run internally
+  #     - "traefik.http.services.analytics.loadbalancer.server.port=8083"
 
   # -------------------------------------------
-  # Traefik (API Gateway / Resepsiyonist)
+  # Traefik (API Gateway / Receptionist)
   # -------------------------------------------
   traefik:
     image: "traefik:v3.0"
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false" # Sadece label'ı olanları expose et.
+      - "--providers.docker.exposedbydefault=false" # Only expose services with labels
       - "--entrypoints.web.address=:80"
     ports:
-      - "8080:80"      # Dış dünyadan gelen istekler için (HOST:CONTAINER)
-      - "8081:8080"    # Traefik Dashboard'ı için (opsiyonel)
+      - "8080:80"      # For incoming requests from the outside world (HOST:CONTAINER)
+      - "8081:8080"    # For Traefik Dashboard (optional)
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"

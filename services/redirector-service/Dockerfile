@@ -1,37 +1,37 @@
-# --- 1. Aşama: Build Aşaması ---
-# Go'nun kurulu olduğu, derleme için optimize edilmiş bir imajla başlıyoruz.
+# --- Stage 1: Build Stage ---
+# Starting with a Go-optimized image for compilation
 FROM golang:1.24-alpine AS builder
 
-# Hangi uygulamayı derleyeceğimizi build sırasında dışarıdan alacağız.
+# We'll receive the application name to build as an argument during build time
 ARG APP_NAME
 
-# Uygulama kaynak kodları için bir çalışma dizini oluşturuyoruz.
+# Creating a working directory for application source code
 WORKDIR /app
 
-# Önce sadece modül dosyalarını kopyalayıp bağımlılıkları indiriyoruz.
-# Bu katman, sadece bağımlılıklar değiştiğinde yeniden çalışır, build'leri hızlandırır.
-COPY services/${APP_NAME}/go.mod services/${APP_NAME}/go.sum ./
+# First, copy only the module files and download dependencies
+# This layer only runs when dependencies change, speeding up builds
 COPY pkg/go.mod pkg/go.sum ./pkg/
-RUN go mod download
+COPY services/${APP_NAME}-service/go.mod services/${APP_NAME}-service/go.sum ./services/${APP_NAME}-service/
+RUN cd services/${APP_NAME}-service && go mod tidy && go mod download
 
-# Tüm kaynak kodunu kopyalıyoruz.
+# Copy all source code
 COPY . .
 
-# Uygulamamızı derliyoruz.
-# CGO_ENABLED=0, statik bir binary oluşturarak minimal imajlarda sorunsuz çalışmasını sağlar.
-# Çıktıyı /app/bin dizinine, argüman olarak gelen uygulama adıyla kaydediyoruz.
-RUN CGO_ENABLED=0 go build -o /app/bin/${APP_NAME} ./cmd/${APP_NAME}
+# Build our application
+# CGO_ENABLED=0 creates a static binary for seamless operation in minimal images
+# Save the output to /app/bin directory with the application name from the argument
+RUN CGO_ENABLED=0 go build -o /app/bin/${APP_NAME} ./services/${APP_NAME}-service/cmd
 
-# --- 2. Aşama: Final Aşaması ---
-# Sadece uygulamayı çalıştırmak için gerekenleri içeren, ultra minimal bir alpine imajı.
+# --- Stage 2: Final Stage ---
+# An ultra-minimal alpine image containing only what's needed to run the application
 FROM alpine:latest
 
-# Güvenlik güncellemelerini alalım.
+# Get security updates
 RUN apk --no-cache add ca-certificates
 
-# Derlenmiş uygulamamızı 'builder' aşamasından bu imajın içine kopyalıyoruz.
+# Copy our compiled application from the 'builder' stage into this image
 COPY --from=builder /app/bin/* /usr/local/bin/
 
-# Container çalıştığında hangi komutun çalışacağını belirtiyoruz.
-# Docker Compose dosyasından gelen command bu satırı ezecek ama varsayılan olarak kalması iyidir.
-CMD ["/usr/local/bin/creator"]
+# Specify which command will run when the container starts
+# The command from docker-compose will override this, but it's good to have a default
+CMD ["/usr/local/bin/redirector"]
