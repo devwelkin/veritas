@@ -11,6 +11,7 @@ import (
 	"github.com/nouvadev/veritas/pkg/config"
 	"github.com/nouvadev/veritas/pkg/database"
 	sqlc "github.com/nouvadev/veritas/pkg/database/sqlc"
+	"github.com/nouvadev/veritas/pkg/nats"
 )
 
 func main() {
@@ -51,6 +52,19 @@ func main() {
 
 	logger.Info("redis connection established")
 
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		logger.Error("NATS_URL environment variable is not set")
+		os.Exit(1)
+	}
+
+	natsConn, err := nats.ConnectNATS(natsURL)
+	if err != nil {
+		logger.Error("failed to connect to nats", "err", err)
+		os.Exit(1)
+	}
+	defer natsConn.Close()
+
 	queries := sqlc.New(dbpool)
 
 	app := &config.AppConfig{
@@ -58,6 +72,7 @@ func main() {
 		DB:      dbpool,
 		Querier: queries,
 		Cache:   redisClient,
+		NATS:    natsConn,
 	}
 
 	PORT := os.Getenv("REDIRECTOR_PORT")

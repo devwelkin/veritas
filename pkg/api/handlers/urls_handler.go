@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/nouvadev/veritas/pkg/config"
 	database "github.com/nouvadev/veritas/pkg/database/sqlc"
 	"github.com/nouvadev/veritas/pkg/utils"
@@ -24,6 +26,13 @@ type URLRequest struct {
 
 type URLResponse struct {
 	ShortURL string `json:"short_url"`
+}
+
+type RedirectEvent struct {
+	ShortCode   string `json:"short_code"`
+	OriginalURL string `json:"original_url"`
+	UserAgent   string `json:"user_agent"`
+	IPAddress   string `json:"ip_address"`
 }
 
 func NewURLHandler(app *config.AppConfig) *URLHandler {
@@ -83,36 +92,68 @@ func (h *URLHandler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *URLHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
-	shortCode := r.URL.Path[1:]
+	shortCode := r.PathValue("short_code")
+	if shortCode == "" {
+		utils.RespondWithError(w, http.StatusBadRequest, "Short code is required")
+		return
+	}
 
+	// 1. Try to get from cache first
 	originalURL, err := h.App.Cache.Get(r.Context(), shortCode).Result()
 	if err == nil {
-		h.App.Logger.Info("URL found in cache", "short_code", shortCode, "original_url", originalURL)
-		http.Redirect(w, r, originalURL, http.StatusMovedPermanently)
+		h.App.Logger.Info("cache hit", "short_code", shortCode)
+		// Redirect and publish event
+		h.publishRedirectEvent(shortCode, originalURL, r)
+		http.Redirect(w, r, originalURL, http.StatusFound)
 		return
 	}
 
 	if !errors.Is(err, redis.Nil) {
 		h.App.Logger.Error("redis error", "err", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+	} else {
+		h.App.Logger.Info("cache miss", "short_code", shortCode)
 	}
 
-	h.App.Logger.Info("URL not found in cache", "short_code", shortCode)
-
+	// 2. If not in cache, get from DB
 	originalURL, err = h.App.Querier.GetURLByShortCode(r.Context(), shortCode)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusNotFound, "URL not found")
-		h.App.Logger.Error("URL not found", "short_code", shortCode)
+		if errors.Is(err, pgx.ErrNoRows) {
+			utils.RespondWithError(w, http.StatusNotFound, "URL not found")
+		} else {
+			utils.RespondWithError(w, http.StatusInternalServerError, "Failed to get URL")
+		}
+		h.App.Logger.Error("db error", "err", err)
 		return
 	}
 
-	err = h.App.Cache.Set(r.Context(), shortCode, originalURL, 0).Err()
+	// 3. Store in cache for future requests
+	if err := h.App.Cache.Set(r.Context(), shortCode, originalURL, 1*time.Hour).Err(); err != nil {
+		h.App.Logger.Error("failed to set cache", "err", err)
+	}
+
+	// Redirect and publish event
+	h.publishRedirectEvent(shortCode, originalURL, r)
+	http.Redirect(w, r, originalURL, http.StatusFound)
+}
+
+func (h *URLHandler) publishRedirectEvent(shortCode, originalURL string, r *http.Request) {
+	event := RedirectEvent{
+		ShortCode:   shortCode,
+		OriginalURL: originalURL,
+		UserAgent:   r.UserAgent(),
+		IPAddress:   r.RemoteAddr,
+	}
+
+	eventJSON, err := json.Marshal(event)
 	if err != nil {
-		h.App.Logger.Error("failed to set URL in cache", "err", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		h.App.Logger.Error("failed to marshal redirect event", "err", err)
 		return
 	}
 
-	http.Redirect(w, r, originalURL, http.StatusMovedPermanently)
+	subject := "veritas.redirect.success"
+	if err := h.App.NATS.Publish(subject, eventJSON); err != nil {
+		h.App.Logger.Error("failed to publish nats event", "err", err)
+	} else {
+		h.App.Logger.Info("published nats event", "subject", subject)
+	}
 }
