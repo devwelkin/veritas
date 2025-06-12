@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.29.0
 
-package database
+package sqlc
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	CreateURL(ctx context.Context, originalUrl string) (int64, error)
+	DeleteURL(ctx context.Context, id int64) error
 	GetURLByShortCode(ctx context.Context, shortCode string) (string, error)
 	UpdateShortCode(ctx context.Context, arg UpdateShortCodeParams) error
 }

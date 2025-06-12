@@ -18,12 +18,11 @@ export const shortenUrl = async (
 		body: JSON.stringify(request),
 	});
 
-	if (!response.ok) {
-		const errorData: ErrorResponse = await response.json();
-		throw new Error(
-			errorData.message || "Something went wrong during shortening.",
-		);
+	const data = await response.json();
+
+	if (!response.ok || data.error) {
+		throw new Error(data.error || "Something went wrong during shortening.");
 	}
 
-	return response.json();
+	return data;
 }; 

@@ -12,6 +12,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - CREATOR_PORT=${CREATOR_PORT:-8081} # Get from .env file, use 8081 if not set
+      - BASE_URL=http://localhost:8080
     labels:
       # --- Traefik Settings (for API Gateway) ---
       - "traefik.enable=true"

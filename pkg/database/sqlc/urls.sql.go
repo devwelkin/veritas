@@ -3,7 +3,7 @@
 //   sqlc v1.29.0
 // source: urls.sql
 
-package database
+package sqlc
 
 import (
 	"context"
@@ -18,6 +18,15 @@ func (q *Queries) CreateURL(ctx context.Context, originalUrl string) (int64, err
 	var id int64
 	err := row.Scan(&id)
 	return id, err
+}
+
+const deleteURL = `-- name: DeleteURL :exec
+DELETE FROM urls WHERE id = $1
+`
+
+func (q *Queries) DeleteURL(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteURL, id)
+	return err
 }
 
 const getURLByShortCode = `-- name: GetURLByShortCode :one
