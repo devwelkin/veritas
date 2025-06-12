@@ -42,7 +42,7 @@ services:
     labels:
       # --- Traefik Settings (for API Gateway) ---
       - "traefik.enable=true"
-      - "traefik.http.routers.redirector.rule=HostRegexp(`{host:.+}`)" # Route all other incoming requests here
+      - "traefik.http.routers.redirector.rule=PathPrefix(`/`)" # Route all other incoming requests here
       - "traefik.http.routers.redirector.priority=1" # Low priority to not override other rules
       - "traefik.http.services.redirector.loadbalancer.server.port=8082"
 
@@ -76,6 +76,7 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false" # Only expose services with labels
       - "--entrypoints.web.address=:80"
+      - "--accesslog=true" # Enable access logs
     ports:
       - "8080:80"      # For incoming requests from the outside world (HOST:CONTAINER)
       - "8081:8080"    # For Traefik Dashboard (optional)

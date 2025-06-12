@@ -3,7 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/nouvadev/veritas/pkg/config"
 	database "github.com/nouvadev/veritas/pkg/database/sqlc"
@@ -62,7 +64,9 @@ func (h *URLHandler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.RespondWithJSON(w, http.StatusCreated, URLResponse{ShortURL: shortCode})
+	shortURL := fmt.Sprintf("%s/%s", os.Getenv("BASE_URL"), shortCode)
+
+	utils.RespondWithJSON(w, http.StatusCreated, URLResponse{ShortURL: shortURL})
 }
 
 func (h *URLHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
