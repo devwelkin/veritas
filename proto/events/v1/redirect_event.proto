@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package events.v1;
+
+option go_package = "github.com/nouvadev/veritas/pkg/gen/proto/events/v1;eventsv1";
+
+// RedirectEvent represents a successful URL redirection.
+message RedirectEvent {
+  // The short code that was redirected.
+  string short_code = 1;
+
+  // The original URL that the user was redirected to.
+  string original_url = 2;
+
+  // The user agent of the client that made the request.
+  string user_agent = 3;
+
+  // The IP address of the client.
+  string ip_address = 4;
+} 

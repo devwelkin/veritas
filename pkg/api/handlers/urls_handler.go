@@ -11,8 +11,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/nouvadev/veritas/pkg/config"
 	database "github.com/nouvadev/veritas/pkg/database/sqlc"
+	eventsv1 "github.com/nouvadev/veritas/pkg/gen/proto/proto/events/v1"
 	"github.com/nouvadev/veritas/pkg/utils"
 	"github.com/redis/go-redis/v9"
+	"google.golang.org/protobuf/proto"
 )
 
 // URLHandler handles all URL-related HTTP requests
@@ -26,13 +28,6 @@ type URLRequest struct {
 
 type URLResponse struct {
 	ShortURL string `json:"short_url"`
-}
-
-type RedirectEvent struct {
-	ShortCode   string `json:"short_code"`
-	OriginalURL string `json:"original_url"`
-	UserAgent   string `json:"user_agent"`
-	IPAddress   string `json:"ip_address"`
 }
 
 func NewURLHandler(app *config.AppConfig) *URLHandler {
@@ -137,21 +132,21 @@ func (h *URLHandler) RedirectToOriginalURL(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *URLHandler) publishRedirectEvent(shortCode, originalURL string, r *http.Request) {
-	event := RedirectEvent{
+	event := &eventsv1.RedirectEvent{
 		ShortCode:   shortCode,
-		OriginalURL: originalURL,
+		OriginalUrl: originalURL,
 		UserAgent:   r.UserAgent(),
-		IPAddress:   r.RemoteAddr,
+		IpAddress:   r.RemoteAddr,
 	}
 
-	eventJSON, err := json.Marshal(event)
+	eventBytes, err := proto.Marshal(event)
 	if err != nil {
 		h.App.Logger.Error("failed to marshal redirect event", "err", err)
 		return
 	}
 
 	subject := "veritas.redirect.success"
-	if err := h.App.NATS.Publish(subject, eventJSON); err != nil {
+	if err := h.App.NATS.Publish(subject, eventBytes); err != nil {
 		h.App.Logger.Error("failed to publish nats event", "err", err)
 	} else {
 		h.App.Logger.Info("published nats event", "subject", subject)

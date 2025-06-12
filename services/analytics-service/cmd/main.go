@@ -7,6 +7,8 @@ import (
 	"syscall"
 
 	"github.com/nats-io/nats.go"
+	eventsv1 "github.com/nouvadev/veritas/pkg/gen/proto/proto/events/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -27,7 +29,18 @@ func main() {
 	// Subscribe to the subject
 	subject := "veritas.redirect.success"
 	sub, err := nc.Subscribe(subject, func(msg *nats.Msg) {
-		log.Printf("Received message on subject '%s': %s", msg.Subject, string(msg.Data))
+		event := &eventsv1.RedirectEvent{}
+		if err := proto.Unmarshal(msg.Data, event); err != nil {
+			log.Printf("Error unmarshalling message: %v", err)
+			return
+		}
+		log.Printf(
+			"Received Event: ShortCode=%s, OriginalURL=%s, UserAgent=%s, IP=%s",
+			event.ShortCode,
+			event.OriginalUrl,
+			event.UserAgent,
+			event.IpAddress,
+		)
 	})
 	if err != nil {
 		log.Fatalf("Error subscribing to subject '%s': %v", subject, err)
