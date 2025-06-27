@@ -64,7 +64,14 @@ jobs:
 
       # Step 7: Run unit tests for all Go services.
       - name: Run Go Tests
-        run: go test -v ./...
+        run: |
+          echo "Discovering Go modules from go.work..."
+          # We must test each module individually when using a go.work file.
+          MODULES=$(go list -m -f '{{.Dir}}')
+          for module in $MODULES; do
+            echo "--- Running tests in module: $module ---"
+            (cd "$module" && go test -v ./...)
+          done
 
       # ------------------------------------------------
       # Build and Push Docker Images (only for main branch)
