@@ -1,5 +1,4 @@
 import type {
-	ErrorResponse,
 	ShortenUrlRequest,
 	ShortenUrlResponse,
 } from "@/types/api";

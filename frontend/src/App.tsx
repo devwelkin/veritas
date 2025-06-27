@@ -26,10 +26,17 @@ function App() {
 		setLoading(true);
 		setError(null);
 		try {
-			const response = await shortenUrlApi({ original_url: longUrl });
-			setShortUrl(response.short_url);
-		} catch (err: any) {
-			setError(err.message || "An unexpected error occurred.");
+			const data = await shortenUrlApi({ original_url: longUrl });
+			if (data.short_url) {
+				const fullShortUrl = `${window.location.protocol}//${window.location.host}/${data.short_url}`;
+				setShortUrl(fullShortUrl);
+			}
+		} catch (err: unknown) {
+			if (err instanceof Error) {
+				setError(err.message || "An unexpected error occurred.");
+			} else {
+				setError("An unexpected error occurred.");
+			}
 		} finally {
 			setLoading(false);
 		}
