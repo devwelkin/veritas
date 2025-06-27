@@ -61,10 +61,14 @@ jobs:
 
       # Step 7: Install and run golangci-lint to check Go code quality.
       - name: Lint Go Code
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.59.1
-          args: --timeout=3m ./...
+        run: |
+          # Read go.work file, ignore comments and 'go' directive, and get module paths.
+          MODULES=$(grep -vE '^#|go' go.work | awk '{print $1}')
+          for module in $MODULES; do
+            echo "Linting Go module: $module"
+            # Navigate to the module directory and run the linter.
+            (cd "$module" && golangci-lint run -v)
+          done
 
       # Step 8: Set up Buf for Protocol Buffer linting and building.
       - name: Install Buf
