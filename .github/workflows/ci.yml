@@ -65,7 +65,12 @@ jobs:
 
       # Step 8: Lint and check for breaking changes in Protobuf files.
       - name: Lint and Check Proto files
-        run: buf lint --path proto && buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,ref=HEAD~1" --path proto
+        # We change into the 'proto' directory first, so that buf sees the correct
+        # paths for package validation, resolving the "files must be within a directory" error.
+        run: |
+          cd proto
+          buf lint
+          buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,ref=HEAD~1"
 
       # Step 9: Run unit tests for all Go services.
       - name: Run Go Tests
