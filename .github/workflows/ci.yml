@@ -65,11 +65,11 @@ jobs:
           # We are installing a specific version for consistent linting results.
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
 
-      # Step 8: Tidy Go modules to sync dependencies across the workspace.
-      # This ensures that each module's go.mod file is up-to-date, which is
-      # essential for the linter to find all type definitions.
-      - name: Tidy Go Modules
-        run: go mod tidy
+      # Step 8: Sync Go workspace dependencies.
+      # 'go work sync' updates each module's go.mod file based on the go.work file.
+      # This is the correct way to manage dependencies in a workspace environment.
+      - name: Sync Go Workspace
+        run: go work sync
 
       # Step 9: Lint Go Code using the installed linter.
       - name: Lint Go Code
