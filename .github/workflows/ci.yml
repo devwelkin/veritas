@@ -68,11 +68,11 @@ jobs:
 
       # Step 8: Set up Buf for Protocol Buffer linting and building.
       - name: Install Buf
-        uses: bufbuild/setup-buf@v1
+        uses: bufbuild/buf-setup-action@v1.35.1
 
       # Step 9: Lint and check for breaking changes in Protobuf files.
       - name: Lint and Check Proto files
-        run: buf lint && buf breaking --against "https://github.com/$(git remote get-url origin | sed 's/https:\/\/github.com\///').git#branch=main,ref=HEAD~1"
+        run: buf lint && buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,ref=HEAD~1"
 
       # Step 10: Run unit tests for all Go services.
       - name: Run Go Tests
