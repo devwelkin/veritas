@@ -17,9 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Step 1: Check out the repository code
-      # This allows the workflow to access the project's files.
+      # fetch-depth: 0 is required to fetch all history for all branches and tags,
+      # which is necessary for the 'buf breaking' command to compare against main.
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # -------------------------------------------
       # Frontend (React + TypeScript)
@@ -70,7 +73,9 @@ jobs:
         run: |
           cd proto
           buf lint
-          buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,ref=HEAD~1"
+          # We compare against the local .git directory to avoid auth issues in CI.
+          # The path is '../.git' because we are inside the 'proto' directory.
+          buf breaking --against "../.git#branch=main"
 
       # Step 9: Run unit tests for all Go services.
       - name: Run Go Tests
