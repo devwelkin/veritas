@@ -62,11 +62,13 @@ jobs:
       # Step 7: Install and run golangci-lint to check Go code quality.
       - name: Lint Go Code
         run: |
-          # Read go.work file, ignore comments and 'go' directive, and get module paths.
-          MODULES=$(grep -vE '^#|go' go.work | awk '{print $1}')
+          echo "Discovering Go modules from go.work..."
+          # Use 'go list' to robustly get the directory of each module in the workspace.
+          # This avoids brittle parsing of the go.work file.
+          MODULES=$(go list -m -f '{{.Dir}}')
           for module in $MODULES; do
-            echo "Linting Go module: $module"
-            # Navigate to the module directory and run the linter.
+            echo "Linting Go module at: $module"
+            # Navigate to the module directory (absolute path) and run the linter.
             (cd "$module" && golangci-lint run -v)
           done
 
