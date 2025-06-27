@@ -56,7 +56,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.24.4'
           cache-dependency-path: '**/go.sum'
 
       # Step 7: Install golangci-lint, which is required by the Lint step.
