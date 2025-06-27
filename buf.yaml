@@ -7,4 +7,6 @@ breaking:
     - FILE
 lint:
   use:
-    - DEFAULT 
+    - DEFAULT
+modules:
+  - path: proto 
