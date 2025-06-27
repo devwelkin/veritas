@@ -65,7 +65,7 @@ jobs:
 
       # Step 8: Lint and check for breaking changes in Protobuf files.
       - name: Lint and Check Proto files
-        run: buf lint proto && buf breaking proto --against "https://github.com/${{ github.repository }}.git#branch=main,ref=HEAD~1"
+        run: buf lint --path proto && buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,ref=HEAD~1" --path proto
 
       # Step 9: Run unit tests for all Go services.
       - name: Run Go Tests
