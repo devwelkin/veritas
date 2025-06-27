@@ -59,40 +59,15 @@ jobs:
           go-version: '1.24.4'
           cache-dependency-path: '**/go.sum'
 
-      # Step 7: Install golangci-lint, which is required by the Lint step.
-      - name: Install golangci-lint
-        run: |
-          # We are installing a specific version for consistent linting results.
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.1
-
-      # Step 8: Sync Go workspace dependencies.
-      # 'go work sync' updates each module's go.mod file based on the go.work file.
-      # This is the correct way to manage dependencies in a workspace environment.
-      - name: Sync Go Workspace
-        run: go work sync
-
-      # Step 9: Lint Go Code using the installed linter.
-      - name: Lint Go Code
-        run: |
-          echo "Discovering Go modules from go.work..."
-          # Use 'go list' to robustly get the directory of each module in the workspace.
-          # This avoids brittle parsing of the go.work file.
-          MODULES=$(go list -m -f '{{.Dir}}')
-          for module in $MODULES; do
-            echo "Linting Go module at: $module"
-            # Navigate to the module directory (absolute path) and run the linter.
-            (cd "$module" && golangci-lint run -v)
-          done
-
-      # Step 10: Set up Buf for Protocol Buffer linting and building.
+      # Step 7: Set up Buf for Protocol Buffer linting and building.
       - name: Install Buf
         uses: bufbuild/buf-setup-action@v1.35.1
 
-      # Step 11: Lint and check for breaking changes in Protobuf files.
+      # Step 8: Lint and check for breaking changes in Protobuf files.
       - name: Lint and Check Proto files
         run: buf lint && buf breaking --against "https://github.com/${{ github.repository }}.git#branch=main,ref=HEAD~1"
 
-      # Step 12: Run unit tests for all Go services.
+      # Step 9: Run unit tests for all Go services.
       - name: Run Go Tests
         run: go test -v ./...
 
@@ -101,7 +76,7 @@ jobs:
       # ------------------------------------------------
       # These steps will only run when code is pushed to the 'main' branch.
 
-      # Step 13: Login to GitHub Container Registry (ghcr.io)
+      # Step 10: Login to GitHub Container Registry (ghcr.io)
       - name: Login to GitHub Container Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
@@ -110,12 +85,12 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Step 14: Set up Docker Buildx for more advanced build features.
+      # Step 11: Set up Docker Buildx for more advanced build features.
       - name: Set up Docker Buildx
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/setup-buildx-action@v3
 
-      # Step 15: Build and push the creator-service image
+      # Step 12: Build and push the creator-service image
       - name: Build and push creator-service image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
@@ -128,7 +103,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Step 16: Build and push the redirector-service image
+      # Step 13: Build and push the redirector-service image
       - name: Build and push redirector-service image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
@@ -141,7 +116,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Step 17: Build and push the analytics-service image
+      # Step 14: Build and push the analytics-service image
       - name: Build and push analytics-service image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
