@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: veritasacr.azurecr.io/veritas/frontend:9c1a1b584598e217a20fddcab37359ac446046ac
+        image: veritasacr.azurecr.io/veritas/frontend:5ca4cd0dcbe578c80c5972b471d65101ea8b5dbf
         ports:
         - containerPort: 80
 ---

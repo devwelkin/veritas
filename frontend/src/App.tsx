@@ -41,10 +41,44 @@ function App() {
 		}
 	};
 
-	const handleCopy = () => {
-		navigator.clipboard.writeText(shortUrl);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
+	const handleCopy = async () => {
+		if (!shortUrl) return;
+
+		try {
+			// Try modern clipboard API first
+			if (navigator.clipboard && window.isSecureContext) {
+				await navigator.clipboard.writeText(shortUrl);
+				setCopied(true);
+				setTimeout(() => setCopied(false), 2000);
+			} else {
+				// Fallback for older browsers or insecure contexts
+				const textArea = document.createElement("textarea");
+				textArea.value = shortUrl;
+				textArea.style.position = "fixed";
+				textArea.style.left = "-9999px";
+				textArea.style.top = "-9999px";
+				document.body.appendChild(textArea);
+				textArea.focus();
+				textArea.select();
+				
+				try {
+					const successful = document.execCommand('copy');
+					if (successful) {
+						setCopied(true);
+						setTimeout(() => setCopied(false), 2000);
+					} else {
+						throw new Error('Copy command failed');
+					}
+				} finally {
+					document.body.removeChild(textArea);
+				}
+			}
+		} catch (err) {
+			console.error('Failed to copy text: ', err);
+			// Show error message to user
+			setError('Failed to copy URL. Please copy it manually.');
+			setTimeout(() => setError(null), 3000);
+		}
 	};
 
 	const handleReset = () => {
