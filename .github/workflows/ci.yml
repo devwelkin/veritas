@@ -92,8 +92,10 @@ jobs:
       # --- Conditional build steps ---
 
       - name: build and push creator-service image
-        # Run this step only if there are changes in the creator-service, pkg folder or the corresponding k8s file
-        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/creator-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/creator-service.yaml'))
+        # Run this step if a version tag is pushed, OR if there are changes in the relevant source files on a main branch push.
+        if: |
+          startsWith(github.ref, 'refs/tags/v') ||
+          (steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/creator-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/creator-service.yaml')))
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -109,8 +111,10 @@ jobs:
             type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/creator-service:cache,mode=max
 
       - name: build and push redirector-service image
-        # Run this step only if there are changes in the redirector-service, pkg folder or the corresponding k8s file
-        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/redirector-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/redirector-service.yaml'))
+        # Run this step if a version tag is pushed, OR if there are changes in the relevant source files on a main branch push.
+        if: |
+          startsWith(github.ref, 'refs/tags/v') ||
+          (steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/redirector-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/redirector-service.yaml')))
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -126,8 +130,10 @@ jobs:
             type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/redirector-service:cache,mode=max
 
       - name: build and push analytics-service image
-        # Run this step only if there are changes in the analytics-service, pkg folder or the corresponding k8s file
-        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/analytics-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/analytics-service.yaml'))
+        # Run this step if a version tag is pushed, OR if there are changes in the relevant source files on a main branch push.
+        if: |
+          startsWith(github.ref, 'refs/tags/v') ||
+          (steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/analytics-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/analytics-service.yaml')))
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -143,8 +149,10 @@ jobs:
             type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/analytics-service:cache,mode=max
 
       - name: build and push frontend image
-        # Run this step only if there are changes in the frontend folder or the corresponding k8s file
-        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'frontend/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/frontend-service.yaml'))
+        # Run this step if a version tag is pushed, OR if there are changes in the relevant source files on a main branch push.
+        if: |
+          startsWith(github.ref, 'refs/tags/v') ||
+          (steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'frontend/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/frontend-service.yaml')))
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
