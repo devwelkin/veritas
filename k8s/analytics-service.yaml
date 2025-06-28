@@ -15,7 +15,7 @@ spec:
       containers:
       - name: analytics-service
         # github actions'ın push'ladığı imajı kullan. sha'yı en son commit'ten al.
-        image: veritasacr.azurecr.io/veritas/analytics-service:e622f8de896ae655e7d32a507c8bd953195f0daa 
+        image: veritasacr.azurecr.io/veritas/analytics-service:2c8df27602feab707be988cab19aaa429778628f
         envFrom:
           - secretRef:
               name: veritas-secrets
