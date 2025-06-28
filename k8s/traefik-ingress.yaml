@@ -2,10 +2,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: veritas-ingress
+  annotations:
+    # this annotation, traefik's more specific path prioritization
+    traefik.ingress.kubernetes.io/router.priority: "1"
 spec:
   rules:
   - http:
       paths:
+      # /api requests go to creator-service
       - path: /api
         pathType: Prefix
         backend:
@@ -13,10 +17,11 @@ spec:
             name: creator-service
             port:
               number: 80
+      # other requests (except /api) go to frontend
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: redirector-service
+            name: frontend-service
             port:
               number: 80

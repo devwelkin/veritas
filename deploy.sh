@@ -15,7 +15,7 @@ echo "📝 Latest commit SHA: $NEW_SHA"
 ACR_SERVER="veritasacr.azurecr.io"
 
 # 3. Service list
-SERVICES=("creator-service" "redirector-service" "analytics-service")
+SERVICES=("creator-service" "redirector-service" "analytics-service" "frontend-service")
 
 echo "🔄 Updating image tags..."
 

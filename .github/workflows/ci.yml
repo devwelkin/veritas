@@ -131,4 +131,16 @@ jobs:
           tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/analytics-service:${{ github.sha }}
           build-args: APP_NAME=analytics
           cache-from: type=gha
-          cache-to: type=gha,mode=max 
+          cache-to: type=gha,mode=max
+
+      # Step 14: Build and push the frontend image
+      - name: Build and push frontend image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend # build context'i frontend klasörü
+          file: ./frontend/Dockerfile # Dockerfile yolunu belirt
+          push: true
+          tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

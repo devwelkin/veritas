@@ -1,5 +1,19 @@
 services:
   # -------------------------------------------
+  # Frontend Service (React Application)
+  # -------------------------------------------
+  frontend-service:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    labels:
+      # --- Traefik Settings (for Frontend) ---
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=PathPrefix(`/`)" # Route all requests starting with / here
+      - "traefik.http.routers.frontend.priority=1" # Lower priority so /api takes precedence
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+  # -------------------------------------------
   # Creator Service (URL Creation Service)
   # -------------------------------------------
   creator-service:
@@ -12,15 +26,16 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - CREATOR_PORT=${CREATOR_PORT:-8081} # Get from .env file, use 8081 if not set
-      - BASE_URL=http://localhost:8080
+      - BASE_URL=${BASE_URL:-http://localhost:8080}
     labels:
       # --- Traefik Settings (for API Gateway) ---
       - "traefik.enable=true"
       - "traefik.http.routers.creator.rule=PathPrefix(`/api`)" # Route requests starting with /api here
+      - "traefik.http.routers.creator.priority=100" # Higher priority to override frontend for /api routes
       - "traefik.http.services.creator.loadbalancer.server.port=8081"
       # --- CORS Middleware Definition for Traefik ---
       - "traefik.http.middlewares.cors-headers.headers.accessControlAllowMethods=GET,POST,PUT,DELETE,OPTIONS"
-      - "traefik.http.middlewares.cors-headers.headers.accessControlAllowOriginList=http://localhost:5173,http://localhost:3000"
+      - "traefik.http.middlewares.cors-headers.headers.accessControlAllowOriginList=http://localhost:8080,http://localhost:5173,http://localhost:3000"
       - "traefik.http.middlewares.cors-headers.headers.accessControlAllowHeaders=Origin,Content-Type,Accept,Authorization"
       - "traefik.http.middlewares.cors-headers.headers.accessControlAllowCredentials=true"
       # --- Apply CORS Middleware to the Router ---
@@ -44,10 +59,10 @@ services:
     depends_on:
       - nats
     labels:
-      # --- Traefik Settings (for API Gateway) ---
+      # --- Traefik Settings (for short URL redirects) ---
       - "traefik.enable=true"
-      - "traefik.http.routers.redirector.rule=PathPrefix(`/`)" # Route all other incoming requests here
-      - "traefik.http.routers.redirector.priority=1" # Low priority to not override other rules
+      - "traefik.http.routers.redirector.rule=PathRegexp(`^/[a-zA-Z0-9]+$$`)" # Match short URL patterns only (alphanumeric)
+      - "traefik.http.routers.redirector.priority=50" # Medium priority: API(100) > Short URLs(50) > Frontend(1)
       - "traefik.http.services.redirector.loadbalancer.server.port=8082"
 
   # -------------------------------------------

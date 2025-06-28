@@ -68,9 +68,14 @@ func (h *URLHandler) CreateShortURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortURL := fmt.Sprintf("%s/%s", os.Getenv("BASE_URL"), shortCode)
+	// Build complete URL in backend (RESTful best practice)
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:8080" // fallback for development
+	}
+	shortURL := fmt.Sprintf("%s/%s", baseURL, shortCode)
 
-	// Respond to the user immediately
+	// Respond to the user with complete URL (single source of truth)
 	utils.RespondWithJSON(w, http.StatusCreated, URLResponse{ShortURL: shortURL})
 
 	// Perform reachability check in the background

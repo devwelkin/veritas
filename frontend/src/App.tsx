@@ -28,8 +28,7 @@ function App() {
 		try {
 			const data = await shortenUrlApi({ original_url: longUrl });
 			if (data.short_url) {
-				const fullShortUrl = `${window.location.protocol}//${window.location.host}/${data.short_url}`;
-				setShortUrl(fullShortUrl);
+				setShortUrl(data.short_url);
 			}
 		} catch (err: unknown) {
 			if (err instanceof Error) {
