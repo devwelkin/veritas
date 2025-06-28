@@ -90,8 +90,8 @@ jobs:
       # --- Conditional build steps ---
 
       - name: build and push creator-service image
-        # Run this step only if there are changes in the creator-service or pkg folder
-        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/creator-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/'))
+        # Run this step only if there are changes in the creator-service, pkg folder or the corresponding k8s file
+        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/creator-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/creator-service.yaml'))
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -107,8 +107,8 @@ jobs:
             type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/creator-service:cache,mode=max
 
       - name: build and push redirector-service image
-        # Run this step only if there are changes in the redirector-service or pkg folder
-        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/redirector-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/'))
+        # Run this step only if there are changes in the redirector-service, pkg folder or the corresponding k8s file
+        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/redirector-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/redirector-service.yaml'))
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -124,8 +124,8 @@ jobs:
             type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/redirector-service:cache,mode=max
 
       - name: build and push analytics-service image
-        # Run this step only if there are changes in the analytics-service or pkg folder
-        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/analytics-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/'))
+        # Run this step only if there are changes in the analytics-service, pkg folder or the corresponding k8s file
+        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'services/analytics-service/') || contains(steps.changed-files.outputs.all_changed_files, 'pkg/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/analytics-service.yaml'))
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -141,8 +141,8 @@ jobs:
             type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/analytics-service:cache,mode=max
 
       - name: build and push frontend image
-        # Run this step only if there are changes in the frontend folder
-        if: steps.changed-files.outputs.any_changed == 'true' && contains(steps.changed-files.outputs.all_changed_files, 'frontend/')
+        # Run this step only if there are changes in the frontend folder or the corresponding k8s file
+        if: steps.changed-files.outputs.any_changed == 'true' && (contains(steps.changed-files.outputs.all_changed_files, 'frontend/') || contains(steps.changed-files.outputs.all_changed_files, 'k8s/frontend-service.yaml'))
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
@@ -156,3 +156,36 @@ jobs:
           cache-to: |
             type=gha,scope=frontend,mode=max
             type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/frontend:cache,mode=max
+
+  # --- 4. Deploy to Kubernetes Job ---
+  deploy:
+    needs: build-and-push # Runs only after images are successfully pushed
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+
+      - name: set up kubernetes context
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }} # IMPORTANT: Add this secret to your GitHub repository
+
+      - name: update k8s manifests with new image tag
+        run: |
+          ACR_SERVER="${{ secrets.ACR_LOGIN_SERVER }}"
+          NEW_SHA="${{ github.sha }}"
+          
+          echo "Updating Kubernetes manifests to use SHA: $NEW_SHA"
+          
+          sed -i "s|image: ${ACR_SERVER}/veritas/creator-service:.*|image: ${ACR_SERVER}/veritas/creator-service:${NEW_SHA}|g" k8s/creator-service.yaml
+          sed -i "s|image: ${ACR_SERVER}/veritas/redirector-service:.*|image: ${ACR_SERVER}/veritas/redirector-service:${NEW_SHA}|g" k8s/redirector-service.yaml
+          sed -i "s|image: ${ACR_SERVER}/veritas/analytics-service:.*|image: ${ACR_SERVER}/veritas/analytics-service:${NEW_SHA}|g" k8s/analytics-service.yaml
+          sed -i "s|image: ${ACR_SERVER}/veritas/frontend:.*|image: ${ACR_SERVER}/veritas/frontend:${NEW_SHA}|g" k8s/frontend-service.yaml
+
+      - name: deploy to kubernetes
+        run: |
+          echo "Applying manifests to Kubernetes cluster..."
+          kubectl apply -f k8s/
+          echo "Deployment rollout initiated."
