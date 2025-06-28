@@ -101,7 +101,7 @@ jobs:
           file: ./services/creator-service/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/veritas/creator-service:${{ github.sha }}
-          args: APP_NAME=creator
+          build-args: APP_NAME=creator
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -114,7 +114,7 @@ jobs:
           file: ./services/redirector-service/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/veritas/redirector-service:${{ github.sha }}
-          args: APP_NAME=redirector
+          build-args: APP_NAME=redirector
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -127,6 +127,6 @@ jobs:
           file: ./services/analytics-service/Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/veritas/analytics-service:${{ github.sha }}
-          args: APP_NAME=analytics
+          build-args: APP_NAME=analytics
           cache-from: type=gha
           cache-to: type=gha,mode=max 
