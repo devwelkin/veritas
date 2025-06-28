@@ -1,50 +1,50 @@
 #!/bin/bash
 
 # Veritas Deployment Script
-# Bu script en son commit SHA'yı alıp K8s YAML dosyalarını günceller ve deploy eder
+# This script gets the latest commit SHA and updates K8s YAML files and deploys them
 
 set -e  # Stop on any error
 
-echo "🚀 Veritas Deployment Script Başlıyor..."
+echo "🚀 Starting Veritas Deployment Script..."
 
-# 1. En son commit SHA'yı al
+# 1. Get the latest commit SHA
 NEW_SHA=$(git rev-parse HEAD)
-echo "📝 En son commit SHA: $NEW_SHA"
+echo "📝 Latest commit SHA: $NEW_SHA"
 
 # 2. ACR Login Server
 ACR_SERVER="veritasacr.azurecr.io"
 
-# 3. Service listesi
+# 3. Service list
 SERVICES=("creator-service" "redirector-service" "analytics-service")
 
-echo "🔄 Image tag'leri güncelleniyor..."
+echo "🔄 Updating image tags..."
 
-# 4. Her service için YAML dosyasındaki image tag'ini güncelle
+# 4. Update image tag in YAML file for each service
 for service in "${SERVICES[@]}"; do
     yaml_file="k8s/${service}.yaml"
     
     if [ -f "$yaml_file" ]; then
-        # Eski image tag'ini yeni SHA ile değiştir
+        # Replace old image tag with new SHA
         sed -i "s|image: ${ACR_SERVER}/veritas/${service}:.*|image: ${ACR_SERVER}/veritas/${service}:${NEW_SHA}|g" "$yaml_file"
-        echo "✅ ${service} YAML dosyası güncellendi"
+        echo "✅ ${service} YAML file updated"
     else
-        echo "⚠️  ${yaml_file} dosyası bulunamadı, atlıyor..."
+        echo "⚠️  ${yaml_file} file not found, skipping..."
     fi
 done
 
-echo "🔄 Kubernetes'e deploy ediliyor..."
+echo "🔄 Deploying to Kubernetes..."
 
-# 5. Kubernetes'e apply et
+# 5. Apply to Kubernetes
 for service in "${SERVICES[@]}"; do
     yaml_file="k8s/${service}.yaml"
     
     if [ -f "$yaml_file" ]; then
-        echo "📦 ${service} deploy ediliyor..."
+        echo "📦 Deploying ${service}..."
         kubectl apply -f "$yaml_file"
     fi
 done
 
-echo "🎉 Deployment tamamlandı!"
-echo "📊 Pod durumlarını kontrol et:"
+echo "🎉 Deployment completed!"
+echo "📊 Check pod status:"
 echo "   kubectl get pods"
 echo "   kubectl logs -l app=creator-service" 
