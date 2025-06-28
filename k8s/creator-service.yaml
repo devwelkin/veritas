@@ -15,7 +15,7 @@ spec:
       containers:
       - name: creator-service
         # github actions'ın push'ladığı imajı kullan. sha'yı en son commit'ten al.
-        image: veritasacr.azurecr.io/veritas/creator-service:597dda5928a29f3f44ec8f5cd5ad28ad4e8b12bb
+        image: veritasacr.azurecr.io/veritas/creator-service:9c1a1b584598e217a20fddcab37359ac446046ac
         ports:
         - containerPort: 8081
         envFrom:

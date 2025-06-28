@@ -142,5 +142,7 @@ jobs:
           file: ./frontend/Dockerfile # Dockerfile yolunu belirt
           push: true
           tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/frontend:${{ github.sha }}
+          build-args: |
+            VITE_API_URL=/api
           cache-from: type=gha
           cache-to: type=gha,mode=max

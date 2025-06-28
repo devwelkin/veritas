@@ -24,8 +24,14 @@ for service in "${SERVICES[@]}"; do
     yaml_file="k8s/${service}.yaml"
     
     if [ -f "$yaml_file" ]; then
+        # Map service name to image name (frontend-service uses 'frontend' image)
+        image_name=$service
+        if [ "$service" = "frontend-service" ]; then
+            image_name="frontend"
+        fi
+        
         # Replace old image tag with new SHA
-        sed -i "s|image: ${ACR_SERVER}/veritas/${service}:.*|image: ${ACR_SERVER}/veritas/${service}:${NEW_SHA}|g" "$yaml_file"
+        sed -i "s|image: ${ACR_SERVER}/veritas/${image_name}:.*|image: ${ACR_SERVER}/veritas/${image_name}:${NEW_SHA}|g" "$yaml_file"
         echo "✅ ${service} YAML file updated"
     else
         echo "⚠️  ${yaml_file} file not found, skipping..."
