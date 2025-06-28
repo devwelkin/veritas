@@ -3,3 +3,9 @@ veritas
 .env
 
 /k8s/secret.yaml
+
+
+terraform/.terraform
+
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
