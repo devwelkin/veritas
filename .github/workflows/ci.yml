@@ -76,23 +76,25 @@ jobs:
       # ------------------------------------------------
       # Build and Push Docker Images (only for main branch)
       # ------------------------------------------------
-      # These steps will only run when code is pushed to the 'main' branch.
 
-      # Step 8: Login to GitHub Container Registry (ghcr.io)
-      - name: Login to GitHub Container Registry
+      # Step 8: Login to Azure
+      - name: Login to Azure
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
+        uses: azure/login@v1
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.CR_PAT || secrets.GITHUB_TOKEN }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Step 9: Set up Docker Buildx for more advanced build features.
+      # Step 9: Login to Azure Container Registry
+      - name: Login to Azure Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
+
+      # Step 10: Set up Docker Buildx
       - name: Set up Docker Buildx
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/setup-buildx-action@v3
 
-      # Step 10: Build and push the creator-service image
+      # Step 11: Build and push the creator-service image
       - name: Build and push creator-service image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
@@ -100,12 +102,12 @@ jobs:
           context: .
           file: ./services/creator-service/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/veritas/creator-service:${{ github.sha }}
+          tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/creator-service:${{ github.sha }}
           build-args: APP_NAME=creator
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Step 11: Build and push the redirector-service image
+      # Step 12: Build and push the redirector-service image
       - name: Build and push redirector-service image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
@@ -113,12 +115,12 @@ jobs:
           context: .
           file: ./services/redirector-service/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/veritas/redirector-service:${{ github.sha }}
+          tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/redirector-service:${{ github.sha }}
           build-args: APP_NAME=redirector
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Step 12: Build and push the analytics-service image
+      # Step 13: Build and push the analytics-service image
       - name: Build and push analytics-service image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
@@ -126,7 +128,7 @@ jobs:
           context: .
           file: ./services/analytics-service/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/veritas/analytics-service:${{ github.sha }}
+          tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/analytics-service:${{ github.sha }}
           build-args: APP_NAME=analytics
           cache-from: type=gha
           cache-to: type=gha,mode=max 
