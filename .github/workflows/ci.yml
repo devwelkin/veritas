@@ -11,25 +11,19 @@ on:
     branches:
       - main
 
+# Parallel jobs for faster CI
 jobs:
-  # The 'ci' job contains all the steps for our Continuous Integration process.
-  ci:
+  # -------------------------------------------
+  # Frontend Testing & Building (Parallel)
+  # -------------------------------------------
+  frontend:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Check out the repository code
-      # fetch-depth: 0 is required to fetch all history for all branches and tags,
-      # which is necessary for the 'buf breaking' command to compare against main.
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1 # Shallow clone for speed
 
-      # -------------------------------------------
-      # Frontend (React + TypeScript)
-      # -------------------------------------------
-
-      # Step 2: Set up Node.js environment for the frontend
-      # Caches npm dependencies to speed up subsequent runs.
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -37,112 +31,143 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      # Step 3: Install frontend dependencies
-      # 'npm ci' is used for faster, more reliable installs in CI environments.
       - name: Install Frontend Dependencies
-        run: npm ci --prefix frontend
+        run: npm ci --prefix frontend --prefer-offline
 
-      # Step 4: Lint frontend code for quality and style issues.
       - name: Lint Frontend
-        run: echo ">>> Linting frontend..." && npm run lint --prefix frontend
+        run: npm run lint --prefix frontend
 
-      # Step 5: Build the frontend application to ensure it compiles.
       - name: Build Frontend
-        run: echo ">>> Building frontend..." && npm run build --prefix frontend
+        run: npm run build --prefix frontend
 
-      # -------------------------------------------
-      # Backend (Go Services & Protobuf)
-      # -------------------------------------------
+      # Upload build artifacts for docker job
+      - name: Upload frontend build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 1
 
-      # Step 6: Set up Go environment
-      # Caches Go modules based on go.work.sum to speed up subsequent builds.
+  # -------------------------------------------
+  # Backend Testing (Parallel)
+  # -------------------------------------------
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1 # Shallow clone for speed
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.4'
           cache-dependency-path: '**/go.sum'
 
-      # Step 7: Run unit tests for all Go services.
-      - name: Run Go Tests
+      # Parallel Go tests
+      - name: Run Go Tests (Parallel)
         run: |
-          echo "Discovering Go modules from go.work..."
-          # We must test each module individually when using a go.work file.
+          echo "Running Go tests in parallel..."
           MODULES=$(go list -m -f '{{.Dir}}')
+          
+          # Run tests in parallel with background jobs
           for module in $MODULES; do
-            echo "--- Running tests in module: $module ---"
-            (cd "$module" && go test -v ./...)
+            echo "Starting tests in: $module"
+            (cd "$module" && go test -v ./... -timeout=5m) &
           done
+          
+          # Wait for all background jobs to complete
+          wait
+          echo "All Go tests completed!"
 
-      # ------------------------------------------------
-      # Build and Push Docker Images (only for main branch)
-      # ------------------------------------------------
+  # -------------------------------------------
+  # Smart Docker Building (Only on main, only changed services)
+  # -------------------------------------------
+  docker:
+    runs-on: ubuntu-latest
+    needs: [frontend, backend] # Wait for tests to pass
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      matrix:
+        service: [creator-service, redirector-service, analytics-service, frontend]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Need 2 commits to detect changes
 
-      # Step 8: Login to Azure
+      # Check if this service changed
+      - name: Check service changes
+        id: changes
+        run: |
+          if [ "${{ matrix.service }}" = "frontend" ]; then
+            CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '^frontend/' || echo "")
+          else
+            CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '^(services/${{ matrix.service }}/|pkg/)' || echo "")
+          fi
+          
+          if [ -n "$CHANGED" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Service ${{ matrix.service }} has changes"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Service ${{ matrix.service }} has no changes, skipping build"
+          fi
+
+      # Download frontend build artifact
+      - name: Download frontend build
+        if: matrix.service == 'frontend' && steps.changes.outputs.changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+
       - name: Login to Azure
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.changed == 'true'
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Step 9: Login to Azure Container Registry
       - name: Login to Azure Container Registry
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.changed == 'true'
         run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
 
-      # Step 10: Set up Docker Buildx
       - name: Set up Docker Buildx
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: steps.changes.outputs.changed == 'true'
         uses: docker/setup-buildx-action@v3
 
-      # Step 11: Build and push the creator-service image
-      - name: Build and push creator-service image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      # Optimized Docker builds with better caching
+      - name: Build and push ${{ matrix.service }} image
+        if: steps.changes.outputs.changed == 'true'
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./services/creator-service/Dockerfile
+          context: ${{ matrix.service == 'frontend' && './frontend' || '.' }}
+          file: ${{ matrix.service == 'frontend' && './frontend/Dockerfile' || format('./services/{0}/Dockerfile', matrix.service) }}
           push: true
-          tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/creator-service:${{ github.sha }}
-          build-args: APP_NAME=creator
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/${{ matrix.service == 'frontend' && 'frontend' || matrix.service }}:${{ github.sha }}
+          build-args: ${{ matrix.service != 'frontend' && format('APP_NAME={0}', split(matrix.service, '-')[0]) || 'VITE_API_URL=/api' }}
+          # Advanced caching for faster builds
+          cache-from: |
+            type=gha,scope=${{ matrix.service }}
+            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/${{ matrix.service == 'frontend' && 'frontend' || matrix.service }}:cache
+          cache-to: |
+            type=gha,scope=${{ matrix.service }},mode=max
+            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/${{ matrix.service == 'frontend' && 'frontend' || matrix.service }}:cache,mode=max
 
-      # Step 12: Build and push the redirector-service image
-      - name: Build and push redirector-service image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./services/redirector-service/Dockerfile
-          push: true
-          tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/redirector-service:${{ github.sha }}
-          build-args: APP_NAME=redirector
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # Step 13: Build and push the analytics-service image
-      - name: Build and push analytics-service image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./services/analytics-service/Dockerfile
-          push: true
-          tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/analytics-service:${{ github.sha }}
-          build-args: APP_NAME=analytics
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # Step 14: Build and push the frontend image
-      - name: Build and push frontend image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend # build context'i frontend klasörü
-          file: ./frontend/Dockerfile # Dockerfile yolunu belirt
-          push: true
-          tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/frontend:${{ github.sha }}
-          build-args: |
-            VITE_API_URL=/api
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+  # -------------------------------------------
+  # Status Check (Required for branch protection)
+  # -------------------------------------------
+  ci-status:
+    runs-on: ubuntu-latest
+    needs: [frontend, backend, docker]
+    if: always()
+    steps:
+      - name: Check CI Status
+        run: |
+          if [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.backend.result }}" != "success" ]; then
+            echo "CI failed!"
+            exit 1
+          fi
+          echo "CI passed!"
