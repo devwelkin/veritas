@@ -179,11 +179,8 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v4
 
-      - name: set up kubernetes context
-        uses: azure/k8s-set-context@v3
-        with:
-          method: kubeconfig
-          kubeconfig: ${{ secrets.KUBE_CONFIG }} # IMPORTANT: Add this secret to your GitHub repository
+      - name: Set up Kubernetes context
+        run: az aks get-credentials --resource-group veritas-rg --name veritas-aks --overwrite-existing
 
       - name: update k8s manifests with new image tag
         run: |
