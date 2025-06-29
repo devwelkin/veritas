@@ -39,15 +39,16 @@ resource "azurerm_kubernetes_cluster" "veritas_aks" {
   resource_group_name = azurerm_resource_group.veritas_rg.name
   # use the *actual* dns prefix that azure created
   dns_prefix          = "veritas-ak-veritas-rg-ff15cd"
+  sku_tier            = "Free"
 
   default_node_pool {
     # use the *actual* node pool name
     name       = "nodepool1" 
     node_count = 1
     # use the *actual* vm size
-    vm_size    = "Standard_D4d_v4"
+    vm_size    = "Standard_B2s"
     # match the os disk type
-    os_disk_type = "Ephemeral"
+    os_disk_type = "Managed"
   }
 
   identity {
