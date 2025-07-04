@@ -12,15 +12,6 @@ resource "azurerm_container_registry" "veritas_acr" {
   sku                 = "Basic"
 }
 
-# 3. static public IP address for traefik
-resource "azurerm_public_ip" "traefik_ip" {
-  name                = "veritas-traefik-public-ip"
-  resource_group_name = azurerm_resource_group.veritas_rg.name
-  location            = azurerm_resource_group.veritas_rg.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
-
 # 4. kubernetes cluster
 resource "azurerm_kubernetes_cluster" "veritas_aks" {
   name                = "veritas-aks"
@@ -48,10 +39,15 @@ resource "azurerm_role_assignment" "acr_pull_aks" {
   principal_id         = azurerm_kubernetes_cluster.veritas_aks.kubelet_identity[0].object_id
 }
 
+# 6. install traefik helm chart
+resource "helm_release" "traefik" {
+  name       = "traefik"
+  repository = "https://helm.traefik.io/traefik"
+  chart      = "traefik"
+  version    = "25.0.0"
 
+  
+  timeout = 600
 
-# 7. an output to easily get the ip address
-output "static_public_ip" {
-  value       = azurerm_public_ip.traefik_ip.ip_address
-  description = "The static public IP address for the Traefik Ingress."
+  depends_on = [azurerm_role_assignment.acr_pull_aks]
 }
