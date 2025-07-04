@@ -170,6 +170,11 @@ git push origin v1.0.0
 
 # 4. Apply secrets
 kubectl apply -f k8s/secret.yaml
+
+# 5. Fetch Traefik external IP (first deploy can take ~2 min)
+EXTERNAL_IP=$(kubectl get svc traefik -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "Access the platform at http://${EXTERNAL_IP}.nip.io"
+
 ```
 
 The pipeline will:
