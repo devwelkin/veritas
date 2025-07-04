@@ -48,24 +48,7 @@ resource "azurerm_role_assignment" "acr_pull_aks" {
   principal_id         = azurerm_kubernetes_cluster.veritas_aks.kubelet_identity[0].object_id
 }
 
-# 6. automatically install traefik helm chart
-resource "helm_release" "traefik" {
-  name       = "traefik"
-  repository = "https://helm.traefik.io/traefik"
-  chart      = "traefik"
-  version    = "25.0.0"
 
-  # tell traefik to use the static ip we created
-  set {
-    name  = "service.spec.loadBalancerIP"
-    value = azurerm_public_ip.traefik_ip.ip_address
-  }
-
-  timeout = 600
-
-  # ensure it runs after the aks cluster is created
-  depends_on = [azurerm_kubernetes_cluster.veritas_aks]
-}
 
 # 7. an output to easily get the ip address
 output "static_public_ip" {
