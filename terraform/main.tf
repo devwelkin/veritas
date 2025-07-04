@@ -61,6 +61,8 @@ resource "helm_release" "traefik" {
     value = azurerm_public_ip.traefik_ip.ip_address
   }
 
+  timeout = 600
+
   # ensure it runs after the aks cluster is created
   depends_on = [azurerm_kubernetes_cluster.veritas_aks]
 }
