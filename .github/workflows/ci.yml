@@ -105,12 +105,8 @@ jobs:
           push: true
           tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/creator-service:${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha }}
           build-args: APP_NAME=creator
-          cache-from: |
-            type=gha,scope=creator-service
-            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/creator-service:cache
-          cache-to: |
-            type=gha,scope=creator-service,mode=max
-            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/creator-service:cache,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: build and push redirector-service image
         # Run this step if a version tag is pushed, OR if there are changes in the relevant source files on a main branch push.
@@ -124,12 +120,8 @@ jobs:
           push: true
           tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/redirector-service:${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha }}
           build-args: APP_NAME=redirector
-          cache-from: |
-            type=gha,scope=redirector-service
-            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/redirector-service:cache
-          cache-to: |
-            type=gha,scope=redirector-service,mode=max
-            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/redirector-service:cache,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: build and push analytics-service image
         # Run this step if a version tag is pushed, OR if there are changes in the relevant source files on a main branch push.
@@ -143,12 +135,8 @@ jobs:
           push: true
           tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/analytics-service:${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha }}
           build-args: APP_NAME=analytics
-          cache-from: |
-            type=gha,scope=analytics-service
-            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/analytics-service:cache
-          cache-to: |
-            type=gha,scope=analytics-service,mode=max
-            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/analytics-service:cache,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: build and push frontend image
         # Run this step if a version tag is pushed, OR if there are changes in the relevant source files on a main branch push.
@@ -162,12 +150,8 @@ jobs:
           push: true
           tags: ${{ secrets.ACR_LOGIN_SERVER }}/veritas/frontend:${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha }}
           build-args: VITE_API_URL=/api
-          cache-from: |
-            type=gha,scope=frontend
-            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/frontend:cache
-          cache-to: |
-            type=gha,scope=frontend,mode=max
-            type=registry,ref=${{ secrets.ACR_LOGIN_SERVER }}/veritas/frontend:cache,mode=max
+          ccache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # --- 4. Deploy to Kubernetes Job ---
   deploy:
