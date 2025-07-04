@@ -127,8 +127,7 @@ docker compose up --build
 
 Endpoints:
 
-- Frontend – <http://localhost:5173>
-- API Gateway – <http://localhost:8080>
+- Docker-compose endpoint `http://localhost:8080`
 
 ### Environment Variables
 
@@ -151,11 +150,8 @@ The entire platform can be provisioned and deployed with **one** `terraform appl
 2. Create an **Azure Service Principal** and add its credentials to repository secrets:
    - `AZURE_CREDENTIALS`
    - `ACR_LOGIN_SERVER`
-3. **Apply Kubernetes Secrets** – Sensitive variables such as `DATABASE_URL` and `REDIS_URL` live in [`k8s/secret.yaml`](./k8s/secret.yaml). Replace the placeholder values and run:
+3. **Apply Kubernetes Secrets** – Sensitive variables such as `DATABASE_URL` and `REDIS_URL` live in [`k8s/secret.yaml`](./k8s/secret.yaml). Create a secret.yaml file.
 
-```bash
-kubectl apply -f k8s/secret.yaml  # only once, or when secrets change
-```
 
 
 
@@ -171,6 +167,9 @@ git tag v1.0.0
 
 # 3. Push the tag to trigger GitHub Actions
 git push origin v1.0.0
+
+# 4. Apply secrets
+kubectl apply -f k8s/secret.yaml
 ```
 
 The pipeline will:
@@ -206,10 +205,3 @@ Apply workflow is kept minimal:
 terraform init
 terraform apply
 ```
-
-State is stored securely in **Azure Storage** (see backend config).
-
-
-## License
-
-Distributed under the MIT License. See [`LICENSE`](./LICENSE) for more information. 
