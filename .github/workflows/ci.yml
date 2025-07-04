@@ -179,6 +179,11 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v4
 
+      - name: login to azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Set up Kubernetes context
         run: az aks get-credentials --resource-group veritas-rg --name veritas-aks --overwrite-existing
 
