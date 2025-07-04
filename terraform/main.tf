@@ -1,76 +1,72 @@
-# specifies the cloud provider and version for terraform
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.0" # approximately version 3.0
-    }
-  }
-}
-
-# settings for connecting to azure
-# this block will remain empty because we have already authenticated with 'az login'
-provider "azurerm" {
-  features {}
-}
-
-# --- resources ---
-
-# 1. resource group (az group create...)
+# 1. resource group
 resource "azurerm_resource_group" "veritas_rg" {
   name     = "veritas-rg"
-  location = "polandcentral" 
+  location = "westeurope"
 }
 
-# 2. container registry (az acr create...)
+# 2. container registry
 resource "azurerm_container_registry" "veritas_acr" {
-  name                = "veritasacr" # should be the same name you gave in azure
+  name                = "veritasacr"
   resource_group_name = azurerm_resource_group.veritas_rg.name
   location            = azurerm_resource_group.veritas_rg.location
   sku                 = "Basic"
-  admin_enabled       = false # better to be disabled for security
 }
 
-# 3. kubernetes cluster (az aks create...)
+# 3. static public IP address for traefik
+resource "azurerm_public_ip" "traefik_ip" {
+  name                = "veritas-traefik-public-ip"
+  resource_group_name = azurerm_resource_group.veritas_rg.name
+  location            = azurerm_resource_group.veritas_rg.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+# 4. kubernetes cluster
 resource "azurerm_kubernetes_cluster" "veritas_aks" {
   name                = "veritas-aks"
-  # your plan shows the node resource group is in polandcentral, not westeurope
-  location            = "polandcentral" 
+  location            = azurerm_resource_group.veritas_rg.location
   resource_group_name = azurerm_resource_group.veritas_rg.name
-  # use the *actual* dns prefix that azure created
-  dns_prefix          = "veritas-ak-veritas-rg-ff15cd"
+  dns_prefix          = "veritas-aks" # since terraform creates it, we can give it a simple name
   sku_tier            = "Free"
 
   default_node_pool {
-    # use the *actual* node pool name
-    name       = "nodepool1" 
-    node_count = 1
-    # use the *actual* vm size
-    vm_size    = "Standard_B2s"
-    # match the os disk type
+    name         = "default"
+    node_count   = 1
+    vm_size      = "Standard_B2s"
     os_disk_type = "Managed"
   }
 
   identity {
     type = "SystemAssigned"
   }
-  
-  # --- ADD THIS BLOCK ---
-  # this tells terraform to not worry if these specific parts
-  # of the live resource don't match the code.
-  lifecycle {
-    ignore_changes = [
-      linux_profile,
-      # it's also a good idea to ignore tags, as azure sometimes adds its own
-      tags, 
-    ]
-  }
 }
 
-# 4. connect aks and acr (az aks update --attach-acr...)
-# this creates the necessary role assignment for aks to be able to pull images from acr
+# 5. connection between aks and acr
 resource "azurerm_role_assignment" "acr_pull_aks" {
   scope                = azurerm_container_registry.veritas_acr.id
   role_definition_name = "AcrPull"
   principal_id         = azurerm_kubernetes_cluster.veritas_aks.kubelet_identity[0].object_id
+}
+
+# 6. automatically install traefik helm chart
+resource "helm_release" "traefik" {
+  name       = "traefik"
+  repository = "https://helm.traefik.io/traefik"
+  chart      = "traefik"
+  version    = "25.0.0"
+
+  # tell traefik to use the static ip we created
+  set {
+    name  = "service.spec.loadBalancerIP"
+    value = azurerm_public_ip.traefik_ip.ip_address
+  }
+
+  # ensure it runs after the aks cluster is created
+  depends_on = [azurerm_kubernetes_cluster.veritas_aks]
+}
+
+# 7. an output to easily get the ip address
+output "static_public_ip" {
+  value       = azurerm_public_ip.traefik_ip.ip_address
+  description = "The static public IP address for the Traefik Ingress."
 }

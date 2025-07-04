@@ -6,4 +6,4 @@ data:
   # nats connection string
   NATS_URL: "nats://nats.default.svc.cluster.local:4222"
   # base url
-  BASE_URL: "http://go.134.112.10.179.nip.io"
+  BASE_URL: "http://go.VERITAS_IP.nip.io"

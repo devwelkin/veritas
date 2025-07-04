@@ -4,11 +4,11 @@ metadata:
   name: veritas-ingress
 spec:
   rules:
-  # kural 1: ana domain için (frontend ve api)
-  - host: "134.112.10.179.nip.io" # örn: veritas.com veya <EXTERNAL-IP>.nip.io
+  # rule 1: for main domain (frontend and api)
+  - host: "VERITAS_IP.nip.io" # e.g.: veritas.com or <EXTERNAL-IP>.nip.io
     http:
       paths:
-      # /api istekleri creator-service'e gitsin
+      # /api requests should go to creator-service
       - path: /api
         pathType: Prefix
         backend:
@@ -16,7 +16,7 @@ spec:
             name: creator-service
             port:
               number: 80
-      # diğer tüm istekler frontend'e gitsin
+      # all other requests should go to frontend
       - path: /
         pathType: Prefix
         backend:
@@ -24,8 +24,8 @@ spec:
             name: frontend-service
             port:
               number: 80
-  # kural 2: subdomain için (sadece redirector)
-  - host: "go.134.112.10.179.nip.io" # örn: go.veritas.com veya go.<EXTERNAL-IP>.nip.io
+  # rule 2: for subdomain (only redirector)
+  - host: "go.VERITAS_IP.nip.io" # e.g.: go.veritas.com or go.<EXTERNAL-IP>.nip.io
     http:
       paths:
       - path: /

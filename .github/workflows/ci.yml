@@ -155,8 +155,7 @@ jobs:
 
   # --- 4. Deploy to Kubernetes Job ---
   deploy:
-    needs: build-and-push # Runs only after images are successfully pushed
-    # Run only when a tag starting with 'v' is pushed
+    needs: build-and-push
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -168,20 +167,31 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set up Kubernetes context
+      - name: set up kubernetes context
         run: az aks get-credentials --resource-group veritas-rg --name veritas-aks --overwrite-existing
 
-      - name: update k8s manifests with new image tag
+      - name: get static ip from terraform
+        id: get_ip
+        # get static ip from terraform
+        run: |
+          cd terraform
+          echo "PUBLIC_IP=$(terraform output -raw static_public_ip)" >> $GITHUB_ENV
+          cd ..
+
+      - name: update k8s manifests
         run: |
           ACR_SERVER="${{ secrets.ACR_LOGIN_SERVER }}"
           NEW_VERSION="${{ github.ref_name }}"
+          PUBLIC_IP="${{ env.PUBLIC_IP }}" # bir önceki adımdan gelen ip
           
-          echo "Updating Kubernetes manifests to use version: $NEW_VERSION"
+          echo "Updating manifests with IP: $PUBLIC_IP and Version: $NEW_VERSION"
           
-          sed -i "s|image: ${ACR_SERVER}/veritas/creator-service:.*|image: ${ACR_SERVER}/veritas/creator-service:${NEW_VERSION}|g" k8s/creator-service.yaml
-          sed -i "s|image: ${ACR_SERVER}/veritas/redirector-service:.*|image: ${ACR_SERVER}/veritas/redirector-service:${NEW_VERSION}|g" k8s/redirector-service.yaml
-          sed -i "s|image: ${ACR_SERVER}/veritas/analytics-service:.*|image: ${ACR_SERVER}/veritas/analytics-service:${NEW_VERSION}|g" k8s/analytics-service.yaml
-          sed -i "s|image: ${ACR_SERVER}/veritas/frontend:.*|image: ${ACR_SERVER}/veritas/frontend:${NEW_VERSION}|g" k8s/frontend-service.yaml
+          # tüm yaml'lardaki imaj versiyonunu ve ip adresini dinamik olarak değiştir
+          find ./k8s -type f -name "*.yaml" -exec sed -i "s|image: ${ACR_SERVER}/veritas/creator-service:.*|image: ${ACR_SERVER}/veritas/creator-service:${NEW_VERSION}|g" {} +
+          find ./k8s -type f -name "*.yaml" -exec sed -i "s|image: ${ACR_SERVER}/veritas/redirector-service:.*|image: ${ACR_SERVER}/veritas/redirector-service:${NEW_VERSION}|g" {} +
+          find ./k8s -type f -name "*.yaml" -exec sed -i "s|image: ${ACR_SERVER}/veritas/analytics-service:.*|image: ${ACR_SERVER}/veritas/analytics-service:${NEW_VERSION}|g" {} +
+          find ./k8s -type f -name "*.yaml" -exec sed -i "s|image: ${ACR_SERVER}/veritas/frontend:.*|image: ${ACR_SERVER}/veritas/frontend:${NEW_VERSION}|g" {} +
+          find ./k8s -type f -name "*.yaml" -exec sed -i "s/VERITAS_IP/${PUBLIC_IP}/g" {} +
 
       - name: deploy to kubernetes
         run: |
