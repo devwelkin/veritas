@@ -1,7 +1,7 @@
 # 1. resource group
 resource "azurerm_resource_group" "veritas_rg" {
   name     = "veritas-rg"
-  location = "westeurope"
+  location = "polandcentral"
 }
 
 # 2. container registry
