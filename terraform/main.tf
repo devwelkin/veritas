@@ -31,7 +31,7 @@ resource "azurerm_container_registry" "veritas_acr" {
   admin_enabled       = false # better to be disabled for security
 }
 
-# 3. kubernetes kümesi (az aks create...)
+# 3. kubernetes cluster (az aks create...)
 resource "azurerm_kubernetes_cluster" "veritas_aks" {
   name                = "veritas-aks"
   # your plan shows the node resource group is in polandcentral, not westeurope
