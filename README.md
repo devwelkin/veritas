@@ -1,24 +1,9 @@
 # Veritas URL Shortener
 
-A **cloud-native, microservice-driven** URL shortener built with Go, React, and a modern DevOps tool-chain. Veritas is designed as a **portfolio-grade** project that demonstrates scalable architecture, Infrastructure-as-Code, and fully automated CI/CD on Azure Kubernetes Service (AKS).
+A **cloud-native, microservice-driven** URL shortener built with Go and a modern DevOps tool-chain.
 
 ---
 
-## Table of Contents
-
-1. [Architecture Overview](#architecture-overview)
-2. [Microservices](#microservices)
-3. [Data Flow](#data-flow)
-4. [Key Features](#key-features)
-5. [Tech Stack](#tech-stack)
-6. [Getting Started](#getting-started)
-   - [Local Development](#local-development-docker-compose)
-   - [Environment Variables](#environment-variables)
-7. [Production Deployment](#production-deployment-azure--terraform)
-8. [CI/CD Pipeline](#cicd-pipeline)
-9. [Infrastructure as Code](#infrastructure-as-code)
-10. [Contributing](#contributing)
-11. [License](#license)
 
 ---
 
@@ -77,33 +62,9 @@ All services are containerised with **Docker**, orchestrated by **Kubernetes** (
 1. **Create** ‑ Frontend → Creator Service → PostgreSQL
 2. **Redirect** ‑ Browser → Redirector Service → Redis → (cache miss) PostgreSQL → NATS → Analytics Service
 
-## Key Features
 
-- ⚡ **High-Performance Redirects** – In-memory caching with Redis to minimise DB hits.
-- 📈 **Asynchronous Analytics** – NATS decouples redirect latency from analytics processing.
-- ☁️ **Infrastructure as Code** – Entire Azure footprint defined in Terraform.
-- 🔄 **Zero-Touch CI/CD** – GitHub Actions builds, tests, pushes, and deploys on each version tag.
-- 🛠 **Modern Tool-Chain** – Go modules, sqlc, React, Vite, Tailwind CSS.
 
-## Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| Backend | **Go** | High-performance, concurrent microservices |
-| Storage | **PostgreSQL** | Relational data store |
-| Cache | **Redis** | Ultra-low-latency key-value cache |
-| Messaging | **NATS** | Lightweight event streaming |
-| Code Gen | **sqlc** | Type-safe Go from SQL |
-| Frontend | **React + TypeScript** | Modern SPA |
-| Build | **Vite** | Lightning-fast dev server & bundler |
-| Styling | **Tailwind CSS** / **shadcn/ui** | Design system |
-| Containerisation | **Docker** | Image packaging |
-| Orchestration | **Kubernetes (AKS)** | Deployment & scaling |
-| IaC | **Terraform** | Declarative Azure resources |
-| CI/CD | **GitHub Actions** | Automated pipeline |
-| Networking | **Traefik** | Ingress controller |
-
-## Getting Started
 
 ### Prerequisites
 
@@ -138,7 +99,6 @@ Endpoints:
 | `NATS_URL` | `nats://nats:4222` | NATS server URL |
 | `BASE_URL` | `http://localhost:8080` | Base URL for generated links |
 
-> _Tip_: A ready-to-fill [.env.example](./.env.example) file is included.
 
 ## Production Deployment (Azure & Terraform)
 
